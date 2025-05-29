@@ -20,6 +20,7 @@ contract SimplePDPServiceWithPayments is PDPListener, IArbiter, Initializable, U
     event ProofSetRailCreated(uint256 indexed proofSetId, uint256 railId, address payer, address payee);
     event RailRateUpdated(uint256 indexed proofSetId, uint256 railId, uint256 newRate);
     event RootMetadataAdded(uint256 indexed proofSetId, uint256 rootId, string metadata);
+    event PaymentRateUpdateFailed(uint256 indexed proofSetId, uint256 railId, uint256 attemptedRate, string reason);
 
     // Constants
     uint256 public constant NO_CHALLENGE_SCHEDULED = 0;
@@ -410,14 +411,21 @@ contract SimplePDPServiceWithPayments is PDPListener, IArbiter, Initializable, U
         Payments payments = Payments(paymentsContractAddress);
         uint256 railId = proofSetInfo[proofSetId].railId;
 
-        // Call modifyRailPayment with the new rate and no one-time payment
-        payments.modifyRailPayment(
+        // Try to update the payment rate, catching any reverts
+        try payments.modifyRailPayment(
             railId,
             newRatePerEpoch,
             0 // No one-time payment during rate update
-        );
-
-        emit RailRateUpdated(proofSetId, railId, newRatePerEpoch);
+        ) {
+            // Success - emit the normal rate updated event
+            emit RailRateUpdated(proofSetId, railId, newRatePerEpoch);
+        } catch Error(string memory reason) {
+            // Revert with a reason string - emit failure event
+            emit PaymentRateUpdateFailed(proofSetId, railId, newRatePerEpoch, reason);
+        } catch (bytes memory) {
+            // Low-level revert without a reason - emit failure event with generic message
+            emit PaymentRateUpdateFailed(proofSetId, railId, newRatePerEpoch, "Payment rate update failed");
+        }
     }
 
     /**
@@ -587,7 +595,7 @@ contract SimplePDPServiceWithPayments is PDPListener, IArbiter, Initializable, U
      * @param toEpoch Ending epoch (inclusive)
      * @return result The arbitration result with modified amount and settlement information
      */
-    function arbitratePayment(uint256 railId, uint256 proposedAmount, uint256 fromEpoch, uint256 toEpoch, uint256 rate)
+    function arbitratePayment(uint256 railId, uint256 proposedAmount, uint256 fromEpoch, uint256 toEpoch, uint256 /* rate */)
         external
         override
         returns (ArbitrationResult memory result)
