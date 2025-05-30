@@ -2,6 +2,7 @@ type ProofSet @entity(immutable: false) {
   id: Bytes! # setId
   setId: BigInt! # uint256
   listener: Bytes! # address
+  clientAddr: Bytes! # address
   owner: Provider! # address of the provider
   leafCount: BigInt! # uint256
   challengeRange: BigInt! # uint256
@@ -13,9 +14,9 @@ type ProofSet @entity(immutable: false) {
   totalDataSize: BigInt! # uint256
   totalProofs: BigInt! # uint256
   totalProvedRoots: BigInt! # uint256
-  totalFeePaid: BigInt! # uint256
   totalFaultedPeriods: BigInt! # uint256
   totalFaultedRoots: BigInt! # uint256
+  metadata: String!
   createdAt: BigInt!
   updatedAt: BigInt!
   blockNumber: BigInt!
@@ -39,11 +40,11 @@ type Rail @entity(immutable: false) {
   lockupFixed: BigInt!
   settledUpto: BigInt!
   endEpoch: BigInt!
-  commissionRateBps: BigInt!
+  queueLength: BigInt!
   rateChangeQueue: [RateChangeQueue!]! @derivedFrom(field: "rail")
 
   # Derived relationship
-  proofSet: ProofSet! @derivedFrom(field: "rail")
+  proofSet: ProofSet!
 }
 
 type RateChangeQueue @entity(immutable: false) {
@@ -86,6 +87,7 @@ type Root @entity(immutable: false) {
   createdAt: BigInt!
   updatedAt: BigInt!
   blockNumber: BigInt!
+  metadata: String!
 
   # Relationship
   proofSet: ProofSet! # Link to ProofSet (stores ProofSet ID)

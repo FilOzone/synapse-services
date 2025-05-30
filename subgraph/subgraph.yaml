@@ -19,11 +19,9 @@ dataSources:
         - ProofSet
         - Provider
         - Root
+        - Rail
+        - RateChangeQueue
         - SumTreeCount
-        - EventLog
-        - Transaction
-        - Proof
-        - ProofFee
         - FaultRecord
       abis:
         - name: PDPVerifier
@@ -37,8 +35,6 @@ dataSources:
           handler: handleRootsAdded
         - event: RootsRemoved(indexed uint256,uint256[])
           handler: handleRootsRemoved
-        - event: ProofFeePaid(indexed uint256,uint256,uint64,int32)
-          handler: handleProofFeePaid
         - event: ProofSetEmpty(indexed uint256)
           handler: handleProofSetEmpty
         - event: PossessionProven(indexed uint256,(uint256,uint256)[])
@@ -47,11 +43,11 @@ dataSources:
           handler: handleNextProvingPeriod
       file: ./src/pdp-verifier.ts
   - kind: ethereum
-    name: PDPService
+    name: PandoraService
     network: filecoin-testnet
     source:
       address: "0x6170dE2b09b404776197485F3dc6c968Ef948505"
-      abi: PDPService
+      abi: PandoraService
       startBlock: 2474017
     mapping:
       kind: ethereum/events
@@ -60,12 +56,13 @@ dataSources:
       entities:
         - ProofSet
         - Root
+        - Rail
+        - RateChangeQueue
         - SumTreeCount
-        - EventLog
         - FaultRecord
       abis:
-        - name: PDPService
-          file: ./abis/PDPService.json
+        - name: PandoraService
+          file: ./abis/PandoraService.json
         - name: PDPVerifier
           file: ./abis/PDPVerifier.json
       eventHandlers:
@@ -75,4 +72,4 @@ dataSources:
           handler: handleRailRateUpdated
         - event: "FaultRecord(indexed uint256,uint256,uint256)"
           handler: handleFaultRecord
-      file: ./src/pdp-service.ts
+      file: ./src/pandora-service.ts
