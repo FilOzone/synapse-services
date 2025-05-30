@@ -312,4 +312,169 @@ contract SimplePDPServiceWithPaymentsTest is Test {
         assertEq(pdpServiceWithPayments.challengeWindow(), 60, "Challenge window should be 60 epochs");
         assertEq(pdpServiceWithPayments.getChallengesPerProof(), 5, "Challenges per proof should be 5");
     }
+
+    function testPaymentRateUpdateFailureHandling() public {
+        // Step 1: Create a proof set with a payment rail
+        SimplePDPServiceWithPayments.ProofSetCreateData memory createData =
+            SimplePDPServiceWithPayments.ProofSetCreateData({metadata: "Test Proof Set", payer: client});
+
+        bytes memory localExtraData = abi.encode(createData);
+
+        // Client approves and deposits funds
+        vm.startPrank(client);
+        payments.setOperatorApproval(
+            address(mockUSDFC),
+            address(pdpServiceWithPayments),
+            true,
+            1000e6, // rate allowance (1000 USDFC)
+            1000e6, // lockup allowance (1000 USDFC) 
+            365 days // max lockup period
+        );
+
+        // Deposit minimal funds - just enough for creation fee and initial small rate
+        // This will be insufficient when we try to increase the rate later
+        uint256 minimalDeposit = 1e6; // 1 USDFC - barely enough for initial setup
+        mockUSDFC.approve(address(payments), minimalDeposit);
+        payments.deposit(address(mockUSDFC), client, minimalDeposit);
+        vm.stopPrank();
+
+        // Create proof set as storage provider
+        vm.startPrank(storageProvider);
+        uint256 localProofSetId = mockPDPVerifier.createProofSet(address(pdpServiceWithPayments), localExtraData);
+        vm.stopPrank();
+
+        // Step 2: Initialize proving period with a small leaf count
+        uint256 smallLeafCount = 33000; // Small size, low rate (just above 1 MiB threshold)
+        uint256 challengeWindowStart = pdpServiceWithPayments.initChallengeWindowStart();
+        
+        vm.prank(address(mockPDPVerifier));
+        pdpServiceWithPayments.nextProvingPeriod(localProofSetId, challengeWindowStart, smallLeafCount, "");
+
+        // Verify initial rate was set
+        uint256 railId = pdpServiceWithPayments.getProofSetRailId(localProofSetId);
+        Payments.RailView memory rail = payments.getRail(railId);
+        uint256 initialRate = rail.paymentRate;
+        assertTrue(initialRate > 0, "Initial rate should be set");
+
+        // Step 3: Move forward to the next proving period
+        vm.roll(block.number + pdpServiceWithPayments.getMaxProvingPeriod() + 1);
+
+        // Step 4: Call nextProvingPeriod with a much larger leaf count (would increase rate)
+        // The minimal deposit should be insufficient for the increased lockup requirement
+        uint256 largeLeafCount = 100000000; // Large size, would require high rate
+        uint256 nextChallengeWindow = pdpServiceWithPayments.nextChallengeWindowStart(localProofSetId);
+
+        // Expect the PaymentRateUpdateFailed event
+        uint256 expectedNewRate = pdpServiceWithPayments.calculateStorageRatePerEpoch(
+            pdpServiceWithPayments.getProofSetSizeInBytes(largeLeafCount)
+        );
+        
+        vm.expectEmit(true, true, true, true);
+        emit SimplePDPServiceWithPayments.PaymentRateUpdateFailed(
+            localProofSetId, 
+            railId, 
+            expectedNewRate,
+            "invariant failure: insufficient funds to cover lockup after function execution"
+        );
+
+        // Call nextProvingPeriod - should succeed despite payment failure
+        vm.prank(address(mockPDPVerifier));
+        pdpServiceWithPayments.nextProvingPeriod(localProofSetId, nextChallengeWindow, largeLeafCount, "");
+
+        // Step 5: Verify that proving period advanced successfully
+        uint256 currentDeadline = pdpServiceWithPayments.provingDeadlines(localProofSetId);
+        assertTrue(currentDeadline > block.number, "Proving deadline should be updated");
+
+        // Verify payment rate remains unchanged due to failure
+        rail = payments.getRail(railId);
+        assertEq(rail.paymentRate, initialRate, "Payment rate should remain unchanged after failure");
+    }
+
+    function testPaymentRateUpdateSuccessAfterFailure() public {
+        // This test verifies that after a payment failure, if conditions improve,
+        // the next rate update can succeed
+
+        // Setup similar to previous test
+        SimplePDPServiceWithPayments.ProofSetCreateData memory createData =
+            SimplePDPServiceWithPayments.ProofSetCreateData({metadata: "Test Proof Set", payer: client});
+
+        bytes memory localExtraData = abi.encode(createData);
+
+        vm.startPrank(client);
+        payments.setOperatorApproval(
+            address(mockUSDFC),
+            address(pdpServiceWithPayments),
+            true,
+            1000e6,
+            1000e6,
+            365 days
+        );
+
+        uint256 minimalDeposit = 1e6; // 1 USDFC - barely enough for initial setup
+        mockUSDFC.approve(address(payments), minimalDeposit);
+        payments.deposit(address(mockUSDFC), client, minimalDeposit);
+        vm.stopPrank();
+
+        vm.startPrank(storageProvider);
+        uint256 localProofSetId = mockPDPVerifier.createProofSet(address(pdpServiceWithPayments), localExtraData);
+        vm.stopPrank();
+
+        // Initialize with small leaf count
+        uint256 smallLeafCount = 33000; // Just above 1 MiB threshold
+        uint256 challengeWindowStart = pdpServiceWithPayments.initChallengeWindowStart();
+        
+        vm.prank(address(mockPDPVerifier));
+        pdpServiceWithPayments.nextProvingPeriod(localProofSetId, challengeWindowStart, smallLeafCount, "");
+
+        uint256 railId = pdpServiceWithPayments.getProofSetRailId(localProofSetId);
+
+        // Move to next period
+        vm.roll(block.number + pdpServiceWithPayments.getMaxProvingPeriod() + 1);
+
+        // First update should fail
+        uint256 largeLeafCount = 100000000;
+        uint256 nextChallengeWindow = pdpServiceWithPayments.nextChallengeWindowStart(localProofSetId);
+
+        vm.expectEmit(true, true, true, true);
+        emit SimplePDPServiceWithPayments.PaymentRateUpdateFailed(
+            localProofSetId,
+            railId,
+            pdpServiceWithPayments.calculateStorageRatePerEpoch(
+                pdpServiceWithPayments.getProofSetSizeInBytes(largeLeafCount)
+            ),
+            "invariant failure: insufficient funds to cover lockup after function execution"
+        );
+
+        vm.prank(address(mockPDPVerifier));
+        pdpServiceWithPayments.nextProvingPeriod(localProofSetId, nextChallengeWindow, largeLeafCount, "");
+
+        // Now refund the client account by minting new tokens
+        mockUSDFC.transfer(client, 10000e6); // Give client 10,000 USDFC
+        
+        vm.startPrank(client);
+        uint256 largeDeposit = 10000e6; // 10,000 USDFC
+        mockUSDFC.approve(address(payments), largeDeposit);
+        payments.deposit(address(mockUSDFC), client, largeDeposit);
+        vm.stopPrank();
+
+        // Move to next period
+        vm.roll(block.number + pdpServiceWithPayments.getMaxProvingPeriod() + 1);
+        
+        // This time the update should succeed
+        uint256 newLeafCount = 50000000;
+        nextChallengeWindow = pdpServiceWithPayments.nextChallengeWindowStart(localProofSetId);
+        uint256 expectedRate = pdpServiceWithPayments.calculateStorageRatePerEpoch(
+            pdpServiceWithPayments.getProofSetSizeInBytes(newLeafCount)
+        );
+
+        vm.expectEmit(true, true, true, true);
+        emit SimplePDPServiceWithPayments.RailRateUpdated(localProofSetId, railId, expectedRate);
+
+        vm.prank(address(mockPDPVerifier));
+        pdpServiceWithPayments.nextProvingPeriod(localProofSetId, nextChallengeWindow, newLeafCount, "");
+
+        // Verify rate was updated successfully
+        Payments.RailView memory rail = payments.getRail(railId);
+        assertEq(rail.paymentRate, expectedRate, "Payment rate should be updated after funding");
+    }
 }
