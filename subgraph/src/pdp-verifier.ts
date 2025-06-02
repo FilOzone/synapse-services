@@ -139,41 +139,36 @@ export function handleProofSetEmpty(event: ProofSetEmptyEvent): void {
 
   // Update ProofSet
   const proofSet = ProofSet.load(proofSetEntityId);
-  if (proofSet) {
-    const oldTotalDataSize = proofSet.totalDataSize; // Store size before zeroing
 
-    proofSet.totalRoots = BigInt.fromI32(0);
-    proofSet.totalDataSize = BigInt.fromI32(0);
-    proofSet.leafCount = BigInt.fromI32(0);
-    proofSet.updatedAt = event.block.timestamp;
-    proofSet.blockNumber = event.block.number;
-    proofSet.save();
+  if (!proofSet) return; // proofSet doesn't belong to Pandora Service
 
-    // Update Provider's total data size
-    const provider = Provider.load(proofSet.owner);
-    if (provider) {
-      // Subtract the size this proof set had *before* it was zeroed
-      provider.totalDataSize = provider.totalDataSize.minus(oldTotalDataSize);
-      if (provider.totalDataSize.lt(BigInt.fromI32(0))) {
-        provider.totalDataSize = BigInt.fromI32(0); // Prevent negative size
-      }
-      provider.updatedAt = event.block.timestamp;
-      provider.blockNumber = event.block.number;
-      provider.save();
-    } else {
-      // It's possible the provider was deleted or owner changed before this event
-      log.warning("ProofSetEmpty: Provider {} for ProofSet {} not found", [
-        proofSet.owner.toHexString(),
-        setId.toString(),
-      ]);
+  const oldTotalDataSize = proofSet.totalDataSize; // Store size before zeroing
+
+  proofSet.totalRoots = BigInt.fromI32(0);
+  proofSet.totalDataSize = BigInt.fromI32(0);
+  proofSet.leafCount = BigInt.fromI32(0);
+  proofSet.updatedAt = event.block.timestamp;
+  proofSet.blockNumber = event.block.number;
+  proofSet.save();
+
+  // Update Provider's total data size
+  const provider = Provider.load(proofSet.owner);
+  if (provider) {
+    // Subtract the size this proof set had *before* it was zeroed
+    provider.totalDataSize = provider.totalDataSize.minus(oldTotalDataSize);
+    if (provider.totalDataSize.lt(BigInt.fromI32(0))) {
+      provider.totalDataSize = BigInt.fromI32(0); // Prevent negative size
     }
+    provider.updatedAt = event.block.timestamp;
+    provider.blockNumber = event.block.number;
+    provider.save();
   } else {
-    log.warning("ProofSetEmpty: ProofSet {} not found", [setId.toString()]);
+    // It's possible the provider was deleted or owner changed before this event
+    log.warning("ProofSetEmpty: Provider {} for ProofSet {} not found", [
+      proofSet.owner.toHexString(),
+      setId.toString(),
+    ]);
   }
-  // Note: This event implies all roots are gone. Existing Root entities
-  // linked to this ProofSet might need to be marked as removed or deleted
-  // depending on the desired data retention policy. This handler doesn't do that.
-  // Consider adding logic here or in handleRootsRemoved if needed.
 }
 
 export function handlePossessionProven(event: PossessionProvenEvent): void {
@@ -183,6 +178,11 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
   const currentTimestamp = event.block.timestamp;
 
   const proofSetEntityId = getProofSetEntityId(setId);
+
+  // Load ProofSet early to check if it belongs to Pandora Service
+  const proofSet = ProofSet.load(proofSetEntityId);
+
+  if (!proofSet) return; // proofSet doesn't belong to Pandora Service
 
   let uniqueRoots: BigInt[] = [];
   let rootIdMap = new Map<string, boolean>();
@@ -220,20 +220,16 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
     }
   }
 
-  // Update ProofSet (once per event)
-  const proofSet = ProofSet.load(proofSetEntityId);
-  if (proofSet) {
-    proofSet.lastProvenEpoch = currentBlockNumber; // Update last proven epoch for the set
-    proofSet.totalProvedRoots = proofSet.totalProvedRoots.plus(
-      BigInt.fromI32(uniqueRoots.length)
-    );
-    proofSet.totalProofs = proofSet.totalProofs.plus(BigInt.fromI32(1));
-    proofSet.updatedAt = currentTimestamp;
-    proofSet.blockNumber = currentBlockNumber;
-    proofSet.save();
-  } else {
-    log.warning("PossessionProven: ProofSet {} not found", [setId.toString()]);
-  }
+  // Update ProofSet
+
+  proofSet.lastProvenEpoch = currentBlockNumber; // Update last proven epoch for the set
+  proofSet.totalProvedRoots = proofSet.totalProvedRoots.plus(
+    BigInt.fromI32(uniqueRoots.length)
+  );
+  proofSet.totalProofs = proofSet.totalProofs.plus(BigInt.fromI32(1));
+  proofSet.updatedAt = currentTimestamp;
+  proofSet.blockNumber = currentBlockNumber;
+  proofSet.save();
 }
 
 export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
@@ -245,15 +241,14 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
 
   // Update Proof Set
   const proofSet = ProofSet.load(proofSetEntityId);
-  if (proofSet) {
-    proofSet.nextChallengeEpoch = challengeEpoch;
-    proofSet.challengeRange = leafCount;
-    proofSet.updatedAt = event.block.timestamp;
-    proofSet.blockNumber = event.block.number;
-    proofSet.save();
-  } else {
-    log.warning("NextProvingPeriod: ProofSet {} not found", [setId.toString()]);
-  }
+
+  if (!proofSet) return; // proofSet doesn't belong to Pandora Service
+
+  proofSet.nextChallengeEpoch = challengeEpoch;
+  proofSet.challengeRange = leafCount;
+  proofSet.updatedAt = event.block.timestamp;
+  proofSet.blockNumber = event.block.number;
+  proofSet.save();
 }
 
 export function handleRootsAdded(event: RootsAddedEvent): void {
@@ -274,13 +269,7 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
 
   // Load ProofSet
   const proofSet = ProofSet.load(proofSetEntityId);
-  if (!proofSet) {
-    log.warning("handleRootsAdded: ProofSet {} not found for event tx {}", [
-      setId.toString(),
-      event.transaction.hash.toHex(),
-    ]);
-    return;
-  }
+  if (!proofSet) return; // proofSet doesn't belong to Pandora Service
 
   // --- Parse Transaction Input --- Requires helper functions
   // Skip function selector (first 4 bytes)
@@ -483,13 +472,7 @@ export function handleRootsRemoved(event: RootsRemovedEvent): void {
 
   // Load ProofSet
   const proofSet = ProofSet.load(proofSetEntityId);
-  if (!proofSet) {
-    log.warning("handleRootsRemoved: ProofSet {} not found for event tx {}", [
-      setId.toString(),
-      event.transaction.hash.toHex(),
-    ]);
-    return;
-  }
+  if (!proofSet) return; // proofSet doesn't belong to Pandora Service
 
   let removedRootCount = 0;
   let removedDataSize = BigInt.fromI32(0);

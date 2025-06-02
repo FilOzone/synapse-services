@@ -187,13 +187,8 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
   const entityId = getEventLogEntityId(event.transaction.hash, event.logIndex);
 
   const proofSet = ProofSet.load(proofSetEntityId);
-  if (!proofSet) {
-    log.warning("handleFaultRecord: ProofSet {} not found for event tx {}", [
-      setId.toString(),
-      event.transaction.hash.toHex(),
-    ]);
-    return;
-  }
+  if (!proofSet) return; // proofSet doesn't belong to Pandora Service
+
   const challengeEpoch = proofSet.nextChallengeEpoch;
   const challengeRange = proofSet.challengeRange;
   const proofSetOwner = proofSet.owner;
