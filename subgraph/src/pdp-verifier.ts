@@ -109,6 +109,7 @@ export function handleProofSetOwnerChanged(
   if (newProvider == null) {
     newProvider = new Provider(newOwner);
     newProvider.address = newOwner;
+    newProvider.status = "Created";
     newProvider.totalRoots = BigInt.fromI32(0);
     newProvider.totalFaultedPeriods = BigInt.fromI32(0);
     newProvider.totalFaultedRoots = BigInt.fromI32(0);

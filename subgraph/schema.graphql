@@ -54,9 +54,23 @@ type RateChangeQueue @entity(immutable: false) {
   rail: Rail!
 }
 
+enum ProviderStatus {
+  Created
+  Pending
+  Approved
+  Rejected
+  Removed
+}
+
 type Provider @entity(immutable: false) {
   id: Bytes! # address
   address: Bytes!
+  providerId: BigInt
+  pdpUrl: String
+  pieceRetrievalUrl: String
+  registeredAt: BigInt
+  approvedAt: BigInt
+  status: ProviderStatus!
   totalFaultedPeriods: BigInt!
   totalFaultedRoots: BigInt!
   totalProofSets: BigInt!

@@ -72,4 +72,12 @@ dataSources:
           handler: handleRailRateUpdated
         - event: "FaultRecord(indexed uint256,uint256,uint256)"
           handler: handleFaultRecord
+        - event: "ProviderRegistered(indexed address,string,string)"
+          handler: handleProviderRegistered
+        - event: "ProviderApproved(indexed address,indexed uint256)"
+          handler: handleProviderApproved
+        - event: "ProviderRejected(indexed address)"
+          handler: handleProviderRejected
+        - event: "ProviderRemoved(indexed address,indexed uint256)"
+          handler: handleProviderRemoved
       file: ./src/pandora-service.ts

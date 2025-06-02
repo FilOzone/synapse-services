@@ -10,6 +10,10 @@ import {
   FaultRecord as FaultRecordEvent,
   ProofSetRailCreated as ProofSetRailCreatedEvent,
   RailRateUpdated as RailRateUpdatedEvent,
+  ProviderRegistered as ProviderRegisteredEvent,
+  ProviderApproved as ProviderApprovedEvent,
+  ProviderRemoved as ProviderRemovedEvent,
+  ProviderRejected as ProviderRejectedEvent,
 } from "../generated/PandoraService/PandoraService";
 import { PDPVerifier } from "../generated/PDPVerifier/PDPVerifier";
 import {
@@ -389,6 +393,7 @@ export function handleProofSetRailCreated(
   if (provider == null) {
     provider = new Provider(providerEntityId);
     provider.address = owner;
+    provider.status = "Created";
     provider.totalRoots = BigInt.fromI32(0);
     provider.totalProofSets = BigInt.fromI32(1);
     provider.totalFaultedPeriods = BigInt.fromI32(0);
@@ -430,4 +435,89 @@ export function handleRailRateUpdated(event: RailRateUpdatedEvent): void {
     rail.queueLength = rail.queueLength.plus(BigInt.fromI32(1));
   }
   rail.save();
+}
+
+/**
+ * Handler for ProviderRegistered event
+ * Adds pdpUrl and pieceRetrievalUrl and updates registeredAt to block number with status update to "Registered"
+ */
+export function handleProviderRegistered(event: ProviderRegisteredEvent): void {
+  const providerAddress = event.params.provider;
+  const pdpUrl = event.params.pdpUrl;
+  const pieceRetrievalUrl = event.params.pieceRetrievalUrl;
+
+  let provider = Provider.load(providerAddress);
+  if (!provider) {
+    provider = new Provider(providerAddress);
+    provider.address = providerAddress;
+    provider.totalFaultedPeriods = BigInt.fromI32(0);
+    provider.totalFaultedRoots = BigInt.fromI32(0);
+    provider.totalProofSets = BigInt.fromI32(0);
+    provider.totalRoots = BigInt.fromI32(0);
+    provider.totalDataSize = BigInt.fromI32(0);
+    provider.createdAt = event.block.timestamp;
+  }
+
+  provider.pdpUrl = pdpUrl;
+  provider.pieceRetrievalUrl = pieceRetrievalUrl;
+  provider.registeredAt = event.block.number;
+  provider.status = "Registered";
+  provider.updatedAt = event.block.timestamp;
+  provider.blockNumber = event.block.number;
+
+  provider.save();
+}
+
+/**
+ * Handler for ProviderApproved event
+ * Adds providerId with approvedAt = block.number and status = "Approved"
+ */
+export function handleProviderApproved(event: ProviderApprovedEvent): void {
+  const providerAddress = event.params.provider;
+  const providerId = event.params.providerId;
+
+  let provider = Provider.load(providerAddress);
+  if (!provider) return;
+
+  provider.providerId = providerId;
+  provider.approvedAt = event.block.number;
+  provider.status = "Approved";
+  provider.updatedAt = event.block.timestamp;
+  provider.blockNumber = event.block.number;
+
+  provider.save();
+}
+
+/**
+ * Handler for ProviderRejected event
+ * Updates status to "Rejected"
+ */
+export function handleProviderRejected(event: ProviderRejectedEvent): void {
+  const providerAddress = event.params.provider;
+
+  let provider = Provider.load(providerAddress);
+  if (!provider) return;
+
+  provider.status = "Rejected";
+  provider.updatedAt = event.block.timestamp;
+  provider.blockNumber = event.block.number;
+
+  provider.save();
+}
+
+/**
+ * Handler for ProviderRemoved event
+ * Sets status to "Removed"
+ */
+export function handleProviderRemoved(event: ProviderRemovedEvent): void {
+  const providerAddress = event.params.provider;
+
+  let provider = Provider.load(providerAddress);
+  if (!provider) return;
+
+  provider.status = "Removed";
+  provider.updatedAt = event.block.timestamp;
+  provider.blockNumber = event.block.number;
+
+  provider.save();
 }
