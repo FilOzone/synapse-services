@@ -23,6 +23,20 @@
   },
   {
     "type": "function",
+    "name": "EPOCHS_PER_MONTH",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "GIB_IN_BYTES",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "MIB_IN_BYTES",
     "inputs": [],
     "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
@@ -51,16 +65,46 @@
   },
   {
     "type": "function",
-    "name": "RATE_PER_MIB_PER_EPOCH",
+    "name": "UPGRADE_INTERFACE_VERSION",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [{ "name": "", "type": "string", "internalType": "string" }],
     "stateMutability": "view"
   },
   {
     "type": "function",
-    "name": "UPGRADE_INTERFACE_VERSION",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "string", "internalType": "string" }],
+    "name": "approveServiceProvider",
+    "inputs": [
+      { "name": "provider", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "approvedProviders",
+    "inputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      { "name": "owner", "type": "address", "internalType": "address" },
+      { "name": "pdpUrl", "type": "string", "internalType": "string" },
+      {
+        "name": "pieceRetrievalUrl",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "registeredAt",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      { "name": "approvedAt", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "approvedProvidersMap",
+    "inputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
     "stateMutability": "view"
   },
   {
@@ -74,7 +118,8 @@
         "internalType": "uint256"
       },
       { "name": "fromEpoch", "type": "uint256", "internalType": "uint256" },
-      { "name": "toEpoch", "type": "uint256", "internalType": "uint256" }
+      { "name": "toEpoch", "type": "uint256", "internalType": "uint256" },
+      { "name": "", "type": "uint256", "internalType": "uint256" }
     ],
     "outputs": [
       {
@@ -100,10 +145,60 @@
   },
   {
     "type": "function",
+    "name": "calculateStorageRatePerEpoch",
+    "inputs": [
+      { "name": "totalBytes", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "challengeWindow",
     "inputs": [],
     "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
     "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "clientDataSetIDs",
+    "inputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getApprovedProvider",
+    "inputs": [
+      { "name": "providerId", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct SimplePDPServiceWithPayments.ApprovedProviderInfo",
+        "components": [
+          { "name": "owner", "type": "address", "internalType": "address" },
+          { "name": "pdpUrl", "type": "string", "internalType": "string" },
+          {
+            "name": "pieceRetrievalUrl",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "registeredAt",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "approvedAt",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -118,6 +213,34 @@
     "inputs": [],
     "outputs": [{ "name": "", "type": "uint64", "internalType": "uint64" }],
     "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "getPendingProvider",
+    "inputs": [
+      { "name": "provider", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct SimplePDPServiceWithPayments.PendingProviderInfo",
+        "components": [
+          { "name": "pdpUrl", "type": "string", "internalType": "string" },
+          {
+            "name": "pieceRetrievalUrl",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "registeredAt",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -145,6 +268,24 @@
     "name": "getProofSetRailId",
     "inputs": [
       { "name": "proofSetId", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getProofSetSizeInBytes",
+    "inputs": [
+      { "name": "leafCount", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "getProviderIdByAddress",
+    "inputs": [
+      { "name": "provider", "type": "address", "internalType": "address" }
     ],
     "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
     "stateMutability": "view"
@@ -216,6 +357,15 @@
   },
   {
     "type": "function",
+    "name": "isProviderApproved",
+    "inputs": [
+      { "name": "provider", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "nextChallengeWindowStart",
     "inputs": [
       { "name": "setId", "type": "uint256", "internalType": "uint256" }
@@ -238,6 +388,13 @@
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "nextServiceProviderId",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -265,6 +422,21 @@
     "name": "pdpVerifierAddress",
     "inputs": [],
     "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pendingProviders",
+    "inputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "outputs": [
+      { "name": "pdpUrl", "type": "string", "internalType": "string" },
+      {
+        "name": "pieceRetrievalUrl",
+        "type": "string",
+        "internalType": "string"
+      },
+      { "name": "registeredAt", "type": "uint256", "internalType": "uint256" }
+    ],
     "stateMutability": "view"
   },
   {
@@ -299,12 +471,8 @@
     "name": "proofSetDeleted",
     "inputs": [
       { "name": "proofSetId", "type": "uint256", "internalType": "uint256" },
-      {
-        "name": "deletedLeafCount",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      { "name": "", "type": "bytes", "internalType": "bytes" }
+      { "name": "", "type": "uint256", "internalType": "uint256" },
+      { "name": "extraData", "type": "bytes", "internalType": "bytes" }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
@@ -322,7 +490,12 @@
         "type": "uint256",
         "internalType": "uint256"
       },
-      { "name": "metadata", "type": "string", "internalType": "string" }
+      { "name": "metadata", "type": "string", "internalType": "string" },
+      {
+        "name": "clientDataSetId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
     "stateMutability": "view"
   },
@@ -341,6 +514,13 @@
     "name": "provenThisPeriod",
     "inputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
     "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "providerToId",
+    "inputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
     "stateMutability": "view"
   },
   {
@@ -370,6 +550,38 @@
     "inputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
     "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "registerServiceProvider",
+    "inputs": [
+      { "name": "pdpUrl", "type": "string", "internalType": "string" },
+      {
+        "name": "pieceRetrievalUrl",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "rejectServiceProvider",
+    "inputs": [
+      { "name": "provider", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "removeServiceProvider",
+    "inputs": [
+      { "name": "providerId", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -411,7 +623,7 @@
     "inputs": [
       { "name": "proofSetId", "type": "uint256", "internalType": "uint256" },
       { "name": "rootIds", "type": "uint256[]", "internalType": "uint256[]" },
-      { "name": "", "type": "bytes", "internalType": "bytes" }
+      { "name": "extraData", "type": "bytes", "internalType": "bytes" }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
@@ -596,6 +808,82 @@
         "type": "address",
         "indexed": false,
         "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ProviderApproved",
+    "inputs": [
+      {
+        "name": "provider",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "providerId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ProviderRegistered",
+    "inputs": [
+      {
+        "name": "provider",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "pdpUrl",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "pieceRetrievalUrl",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ProviderRejected",
+    "inputs": [
+      {
+        "name": "provider",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ProviderRemoved",
+    "inputs": [
+      {
+        "name": "provider",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "providerId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
       }
     ],
     "anonymous": false
