@@ -183,7 +183,10 @@ export function findChallengedRoots(
   return rootIdsArray;
 }
 
-// Updated Handler
+/**
+ * Handles the FaultRecord event.
+ * Records a fault for a specific proof set.
+ */
 export function handleFaultRecord(event: FaultRecordEvent): void {
   const setId = event.params.proofSetId;
   const periodsFaultedParam = event.params.periodsFaulted;
@@ -312,6 +315,10 @@ export function handleFaultRecord(event: FaultRecordEvent): void {
   }
 }
 
+/**
+ * Handles the ProofSetRailCreated event.
+ * Creates a new rail for a proof set.
+ */
 export function handleProofSetRailCreated(
   event: ProofSetRailCreatedEvent
 ): void {
@@ -411,6 +418,10 @@ export function handleProofSetRailCreated(
   provider.save();
 }
 
+/**
+ * Handles the RailRateUpdated event.
+ * Updates the payment rate for a specific rail.
+ */
 export function handleRailRateUpdated(event: RailRateUpdatedEvent): void {
   const railId = event.params.railId;
   const newRate = event.params.newRate;

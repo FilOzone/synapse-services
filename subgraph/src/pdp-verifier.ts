@@ -23,6 +23,10 @@ function getRootEntityId(setId: BigInt, rootId: BigInt): Bytes {
 
 // -----------------------------------------
 
+/**
+ * Handles the ProofSetDeleted event.
+ * Deletes a proof set and updates the provider's stats.
+ */
 export function handleProofSetDeleted(event: ProofSetDeletedEvent): void {
   const setId = event.params.setId;
 
@@ -73,6 +77,10 @@ export function handleProofSetDeleted(event: ProofSetDeletedEvent): void {
   // Consider if Roots should be marked as inactive or removed in handleRootsRemoved if needed.
 }
 
+/**
+ * Handles the ProofSetOwnerChanged event.
+ * Changes the owner of a proof set and updates the provider's stats.
+ */
 export function handleProofSetOwnerChanged(
   event: ProofSetOwnerChangedEvent
 ): void {
@@ -133,6 +141,10 @@ export function handleProofSetOwnerChanged(
   proofSet.save();
 }
 
+/**
+ * Handles the ProofSetEmpty event.
+ * Empties a proof set and updates the provider's stats.
+ */
 export function handleProofSetEmpty(event: ProofSetEmptyEvent): void {
   const setId = event.params.setId;
 
@@ -172,6 +184,10 @@ export function handleProofSetEmpty(event: ProofSetEmptyEvent): void {
   }
 }
 
+/**
+ * Handles the PossessionProven event.
+ * Proves possession of a proof set and updates the provider's stats.
+ */
 export function handlePossessionProven(event: PossessionProvenEvent): void {
   const setId = event.params.setId;
   const challenges = event.params.challenges; // Array of { rootId: BigInt, offset: BigInt }
@@ -233,6 +249,10 @@ export function handlePossessionProven(event: PossessionProvenEvent): void {
   proofSet.save();
 }
 
+/**
+ * Handles the NextProvingPeriod event.
+ * Updates the next challenge epoch and challenge range for a proof set.
+ */
 export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
   const setId = event.params.setId;
   const challengeEpoch = event.params.challengeEpoch;
@@ -252,6 +272,10 @@ export function handleNextProvingPeriod(event: NextProvingPeriodEvent): void {
   proofSet.save();
 }
 
+/**
+ * Handles the RootsAdded event.
+ * Adds roots to a proof set and updates the provider's stats.
+ */
 export function handleRootsAdded(event: RootsAddedEvent): void {
   const setId = event.params.setId;
   const rootIdsFromEvent = event.params.rootIds; // Get root IDs from event params
@@ -465,6 +489,10 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
   }
 }
 
+/**
+ * Handles the RootsRemoved event.
+ * Removes roots from a proof set and updates the provider's stats.
+ */
 export function handleRootsRemoved(event: RootsRemovedEvent): void {
   const setId = event.params.setId;
   const rootIds = event.params.rootIds;
