@@ -337,21 +337,19 @@ export function handleProofSetRailCreated(
   const extraDataStart = 4 + 32 + 32;
   const extraDataBytes = inputData.subarray(extraDataStart);
 
-  // Assuming extraData -> (metadata,payer,signature)
+  // Assuming extraData -> (metadata,payer,withCDN,signature)
   const decodedData = ethereum.decode(
-    "(string,address,bytes)",
+    "(string,address,bool,bytes)",
     Bytes.fromUint8Array(extraDataBytes)
   );
 
   let metadata: string = "";
+  let withCDN: boolean = false;
   // Extract the values if decoding was successful
   if (decodedData) {
     const tupleValue = decodedData.toTuple();
-    const setMetadata = tupleValue[0].toString();
-    const _payer = Address.fromBytes(tupleValue[1].toAddress());
-    const _signature = tupleValue[2].toBytes();
-
-    metadata = setMetadata;
+    metadata = tupleValue[0].toString();
+    withCDN = tupleValue[2].toBoolean();
   }
 
   // Create ProofSet
@@ -359,6 +357,7 @@ export function handleProofSetRailCreated(
   proofSet.setId = setId;
   proofSet.metadata = metadata;
   proofSet.clientAddr = clientAddr;
+  proofSet.withCDN = withCDN;
   proofSet.owner = providerEntityId; // Link to Provider via owner address (which is Provider's ID)
   proofSet.listener = listenerAddr;
   proofSet.isActive = true;

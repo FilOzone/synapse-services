@@ -317,7 +317,7 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
   const extraDataStart = readUint256(encodedData, 64);
   const extraDataBytes = encodedData.subarray(extraDataStart.toI32());
 
-  // Assuming extraData -> (metadata,payer,signature)
+  // Assuming extraData -> (metadata,signature)
   const decodedData = ethereum.decode(
     "(bytes,string)",
     Bytes.fromUint8Array(extraDataBytes)
@@ -328,10 +328,7 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
   // Extract the values if decoding was successful
   if (decodedData) {
     const tupleValue = decodedData.toTuple();
-    const _signature = tupleValue[0].toBytes();
-    const rootsMetadata = tupleValue[1].toString();
-
-    metadata = rootsMetadata;
+    metadata = tupleValue[1].toString();
   }
 
   // Decode rootsData (tuple[])

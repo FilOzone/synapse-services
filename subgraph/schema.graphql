@@ -3,6 +3,7 @@ type ProofSet @entity(immutable: false) {
   setId: BigInt! # uint256
   listener: Bytes! # address
   clientAddr: Bytes! # address
+  withCDN: Boolean!
   owner: Provider! # address of the provider
   leafCount: BigInt! # uint256
   challengeRange: BigInt! # uint256
