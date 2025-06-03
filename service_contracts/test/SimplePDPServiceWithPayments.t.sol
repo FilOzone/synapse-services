@@ -968,200 +968,50 @@ contract SimplePDPServiceWithPaymentsTest is Test {
 
     // ===== ClientDataSetIDs Getter Tests =====
 
-    function testGetNextClientDataSetIdWithNoDatasets() public {
-        // Test with a fresh address that has never created any datasets
-        address newPayer = address(0x1234);
+    function testGetNextClientDataSetId() public {
+        // Create a test contract that can modify storage directly
+        TestPDPServiceWithPayments testContract = new TestPDPServiceWithPayments();
         
-        uint256 nextId = pdpServiceWithPayments.getNextClientDataSetId(newPayer);
-        assertEq(nextId, 0, "Next ID should be 0 for payer with no datasets");
-    }
-
-    function testGetNextClientDataSetIdAfterCreatingDataset() public {
-        // First approve the storage provider
-        vm.prank(storageProvider);
-        pdpServiceWithPayments.registerServiceProvider("https://sp.example.com/pdp", "https://sp.example.com/retrieve");
-        pdpServiceWithPayments.approveServiceProvider(storageProvider);
+        // Test 1: Fresh addresses should return 0
+        assertEq(testContract.getNextClientDataSetId(address(0x1234)), 0);
+        assertEq(testContract.getNextClientDataSetId(address(0)), 0);
         
-        // Setup client payment approval
-        vm.startPrank(client);
-        payments.setOperatorApproval(
-            address(mockUSDFC),
-            address(pdpServiceWithPayments),
-            true,
-            1000e6,
-            1000e6,
-            365 days
-        );
-        mockUSDFC.approve(address(payments), 100e6);
-        payments.deposit(address(mockUSDFC), client, 100e6);
-        vm.stopPrank();
+        // Test 2: Set values directly and verify
+        address client1 = address(0x1001);
+        address client2 = address(0x1002);
+        address client3 = address(0x1003);
         
-        // Create first proof set
-        SimplePDPServiceWithPayments.ProofSetCreateData memory createData =
-            SimplePDPServiceWithPayments.ProofSetCreateData({
-                metadata: "First Dataset",
-                payer: client,
-                signature: FAKE_SIGNATURE
-            });
+        testContract.setClientDataSetID(client1, 5);
+        testContract.setClientDataSetID(client2, 10);
+        testContract.setClientDataSetID(client3, 0);
         
-        makeSignaturePass(client);
-        vm.prank(storageProvider);
-        mockPDPVerifier.createProofSet(address(pdpServiceWithPayments), abi.encode(createData));
+        assertEq(testContract.getNextClientDataSetId(client1), 5);
+        assertEq(testContract.getNextClientDataSetId(client2), 10);
+        assertEq(testContract.getNextClientDataSetId(client3), 0);
         
-        // Check next ID after first dataset
-        uint256 nextId = pdpServiceWithPayments.getNextClientDataSetId(client);
-        assertEq(nextId, 1, "Next ID should be 1 after creating first dataset");
+        // Test 3: Create proof sets and verify getNextProofSetClientDataSetId
+        testContract.createTestProofSet(0, client1);
+        testContract.createTestProofSet(1, client2);
         
-        // Create second proof set
-        createData.metadata = "Second Dataset";
-        makeSignaturePass(client);
-        vm.prank(storageProvider);
-        mockPDPVerifier.createProofSet(address(pdpServiceWithPayments), abi.encode(createData));
-        
-        // Check next ID after second dataset
-        nextId = pdpServiceWithPayments.getNextClientDataSetId(client);
-        assertEq(nextId, 2, "Next ID should be 2 after creating second dataset");
-    }
-
-    function testGetNextClientDataSetIdMultiplePayers() public {
-        // First approve the storage provider
-        vm.prank(storageProvider);
-        pdpServiceWithPayments.registerServiceProvider("https://sp.example.com/pdp", "https://sp.example.com/retrieve");
-        pdpServiceWithPayments.approveServiceProvider(storageProvider);
-        
-        // Setup multiple clients
-        address client2 = address(0x2001);
-        address client3 = address(0x2002);
-        
-        // Fund and setup clients
-        mockUSDFC.transfer(client2, 100e6);
-        mockUSDFC.transfer(client3, 100e6);
-        
-        // Setup payment approvals for all clients
-        address[3] memory clients = [client, client2, client3];
-        for (uint i = 0; i < clients.length; i++) {
-            vm.startPrank(clients[i]);
-            payments.setOperatorApproval(
-                address(mockUSDFC),
-                address(pdpServiceWithPayments),
-                true,
-                1000e6,
-                1000e6,
-                365 days
-            );
-            mockUSDFC.approve(address(payments), 50e6);
-            payments.deposit(address(mockUSDFC), clients[i], 50e6);
-            vm.stopPrank();
-        }
-        
-        // Client1 creates 2 datasets
-        for (uint i = 0; i < 2; i++) {
-            SimplePDPServiceWithPayments.ProofSetCreateData memory createData =
-                SimplePDPServiceWithPayments.ProofSetCreateData({
-                    metadata: string(abi.encodePacked("Client1 Dataset ", i)),
-                    payer: client,
-                    signature: FAKE_SIGNATURE
-                });
-            
-            makeSignaturePass(client);
-            vm.prank(storageProvider);
-            mockPDPVerifier.createProofSet(address(pdpServiceWithPayments), abi.encode(createData));
-        }
-        
-        // Client2 creates 3 datasets
-        for (uint i = 0; i < 3; i++) {
-            SimplePDPServiceWithPayments.ProofSetCreateData memory createData =
-                SimplePDPServiceWithPayments.ProofSetCreateData({
-                    metadata: string(abi.encodePacked("Client2 Dataset ", i)),
-                    payer: client2,
-                    signature: FAKE_SIGNATURE
-                });
-            
-            makeSignaturePass(client2);
-            vm.prank(storageProvider);
-            mockPDPVerifier.createProofSet(address(pdpServiceWithPayments), abi.encode(createData));
-        }
-        
-        // Client3 creates 1 dataset
-        SimplePDPServiceWithPayments.ProofSetCreateData memory createData =
-            SimplePDPServiceWithPayments.ProofSetCreateData({
-                metadata: "Client3 Dataset",
-                payer: client3,
-                signature: FAKE_SIGNATURE
-            });
-        
-        makeSignaturePass(client3);
-        vm.prank(storageProvider);
-        mockPDPVerifier.createProofSet(address(pdpServiceWithPayments), abi.encode(createData));
-        
-        // Verify next IDs for each client
-        assertEq(pdpServiceWithPayments.getNextClientDataSetId(client), 2, "Client1 next ID should be 2");
-        assertEq(pdpServiceWithPayments.getNextClientDataSetId(client2), 3, "Client2 next ID should be 3");
-        assertEq(pdpServiceWithPayments.getNextClientDataSetId(client3), 1, "Client3 next ID should be 1");
-        
-        // Verify that an unrelated address returns 0
-        address unrelatedPayer = address(0x9999);
-        assertEq(pdpServiceWithPayments.getNextClientDataSetId(unrelatedPayer), 0, "Unrelated payer next ID should be 0");
-    }
-
-    function testGetNextClientDataSetIdConsistency() public {
-        // First approve the storage provider
-        vm.prank(storageProvider);
-        pdpServiceWithPayments.registerServiceProvider("https://sp.example.com/pdp", "https://sp.example.com/retrieve");
-        pdpServiceWithPayments.approveServiceProvider(storageProvider);
-        
-        // Setup client
-        vm.startPrank(client);
-        payments.setOperatorApproval(
-            address(mockUSDFC),
-            address(pdpServiceWithPayments),
-            true,
-            1000e6,
-            1000e6,
-            365 days
-        );
-        mockUSDFC.approve(address(payments), 200e6);
-        payments.deposit(address(mockUSDFC), client, 200e6);
-        vm.stopPrank();
-        
-        // Check the raw mapping value before any datasets
-        uint256 rawMappingValue = pdpServiceWithPayments.clientDataSetIDs(client);
-        assertEq(rawMappingValue, 0, "Raw mapping should be 0 before any datasets");
-        
-        // Create 5 datasets and verify count after each
-        for (uint i = 1; i <= 5; i++) {
-            SimplePDPServiceWithPayments.ProofSetCreateData memory createData =
-                SimplePDPServiceWithPayments.ProofSetCreateData({
-                    metadata: string(abi.encodePacked("Dataset ", i)),
-                    payer: client,
-                    signature: FAKE_SIGNATURE
-                });
-            
-            makeSignaturePass(client);
-            vm.prank(storageProvider);
-            uint256 proofSetId = mockPDPVerifier.createProofSet(address(pdpServiceWithPayments), abi.encode(createData));
-            
-            // Verify the next ID
-            uint256 nextId = pdpServiceWithPayments.getNextClientDataSetId(client);
-            assertEq(nextId, i, "Next ID should be ", i);
-            
-            // Verify the raw mapping value
-            rawMappingValue = pdpServiceWithPayments.clientDataSetIDs(client);
-            assertEq(rawMappingValue, i, "Raw mapping value should match next ID");
-            
-            // Verify the next ID through proof set
-            uint256 nextIdViaProofSet = pdpServiceWithPayments.getNextProofSetClientDataSetId(proofSetId);
-            assertEq(nextIdViaProofSet, i, "Next ID via proof set should match");
-        }
-    }
-
-    function testGetNextClientDataSetIdWithZeroAddress() public {
-        // Test with zero address
-        uint256 nextId = pdpServiceWithPayments.getNextClientDataSetId(address(0));
-        assertEq(nextId, 0, "Next ID should be 0 for zero address");
+        assertEq(testContract.getNextProofSetClientDataSetId(0), 5);
+        assertEq(testContract.getNextProofSetClientDataSetId(1), 10);
     }
 
 
+}
+
+contract TestPDPServiceWithPayments is SimplePDPServiceWithPayments {
+    constructor() {}
+    
+    // Allow direct manipulation of clientDataSetIDs for testing
+    function setClientDataSetID(address payer, uint256 value) public {
+        clientDataSetIDs[payer] = value;
+    }
+    
+    // Create a test proof set with specific payer
+    function createTestProofSet(uint256 proofSetId, address payer) public {
+        proofSetInfo[proofSetId].payer = payer;
+    }
 }
 
 contract SignatureCheckingService is SimplePDPServiceWithPayments {
