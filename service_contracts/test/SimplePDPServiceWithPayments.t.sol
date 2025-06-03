@@ -966,7 +966,52 @@ contract SimplePDPServiceWithPaymentsTest is Test {
         assertEq(providers[1].pdpUrl, pdpUrls[4], "SP5 URL should match");
     }
 
+    // ===== ClientDataSetIDs Getter Tests =====
 
+    function testGetNextClientDataSetId() public {
+        // Create a test contract that can modify storage directly
+        TestPDPServiceWithPayments testContract = new TestPDPServiceWithPayments();
+        
+        // Test 1: Fresh addresses should return 0
+        assertEq(testContract.getNextClientDataSetId(address(0x1234)), 0);
+        assertEq(testContract.getNextClientDataSetId(address(0)), 0);
+        
+        // Test 2: Set values directly and verify
+        address client1 = address(0x1001);
+        address client2 = address(0x1002);
+        address client3 = address(0x1003);
+        
+        testContract.setClientDataSetID(client1, 5);
+        testContract.setClientDataSetID(client2, 10);
+        testContract.setClientDataSetID(client3, 0);
+        
+        assertEq(testContract.getNextClientDataSetId(client1), 5);
+        assertEq(testContract.getNextClientDataSetId(client2), 10);
+        assertEq(testContract.getNextClientDataSetId(client3), 0);
+        
+        // Test 3: Create proof sets and verify getNextProofSetClientDataSetId
+        testContract.createTestProofSet(0, client1);
+        testContract.createTestProofSet(1, client2);
+        
+        assertEq(testContract.getNextProofSetClientDataSetId(0), 5);
+        assertEq(testContract.getNextProofSetClientDataSetId(1), 10);
+    }
+
+
+}
+
+contract TestPDPServiceWithPayments is SimplePDPServiceWithPayments {
+    constructor() {}
+    
+    // Allow direct manipulation of clientDataSetIDs for testing
+    function setClientDataSetID(address payer, uint256 value) public {
+        clientDataSetIDs[payer] = value;
+    }
+    
+    // Create a test proof set with specific payer
+    function createTestProofSet(uint256 proofSetId, address payer) public {
+        proofSetInfo[proofSetId].payer = payer;
+    }
 }
 
 contract SignatureCheckingService is SimplePDPServiceWithPayments {
