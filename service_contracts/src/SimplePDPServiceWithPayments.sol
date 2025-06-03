@@ -746,6 +746,25 @@ contract SimplePDPServiceWithPayments is PDPListener, IArbiter, Initializable, U
     }
 
     /**
+     * @notice Get the next available client dataset ID for a specific payer
+     * @param payer The address of the payer to query
+     * @return The next client dataset ID that will be assigned
+     */
+    function getNextClientDataSetId(address payer) external view returns (uint256) {
+        return clientDataSetIDs[payer];
+    }
+
+    /**
+     * @notice Get the next clientDataSetId that would be assigned for a proof set's payer
+     * @param proofSetId The ID of the proof set
+     * @return The next clientDataSetId that would be assigned to the payer
+     */
+    function getNextProofSetClientDataSetId(uint256 proofSetId) external view returns (uint256) {
+        address payer = proofSetInfo[proofSetId].payer;
+        return clientDataSetIDs[payer];
+    }
+
+    /**
      * @notice Verifies a signature for the CreateProofSet operation
      * @param payer The address of the payer who should have signed the message
      * @param clientDataSetId The unique ID for the client's dataset
