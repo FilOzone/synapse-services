@@ -21,8 +21,10 @@ import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
  * - Run testExternalSignatures to verify your application's signatures
  */
 
-// Wrapper to expose internal signature verification functions and EIP-712 hashing
-contract TestableSimplePDPServiceEIP712 is SimplePDPServiceWithPayments {
+// Simple standalone contract just for EIP-712 testing
+contract TestableSimplePDPServiceEIP712 is EIP712 {
+    constructor() EIP712("SimplePDPServiceWithPayments", "1") {}
+
     // Re-declare the type hashes from parent contract (they're private)
     bytes32 private constant CREATE_PROOFSET_TYPEHASH = keccak256(
         "CreateProofSet(uint256 clientDataSetId,bool withCDN,address payee)"
@@ -37,7 +39,7 @@ contract TestableSimplePDPServiceEIP712 is SimplePDPServiceWithPayments {
     );
 
     bytes32 private constant ADD_ROOTS_TYPEHASH = keccak256(
-        "AddRoots(uint256 clientDataSetId,uint256 firstAdded,RootData[] rootData)RootData(Cid root,uint256 rawSize)Cid(bytes data)"
+        "AddRoots(uint256 clientDataSetId,uint256 firstAdded,RootData[] rootData)Cid(bytes data)RootData(Cid root,uint256 rawSize)"
     );
 
     bytes32 private constant SCHEDULE_REMOVALS_TYPEHASH = keccak256(
@@ -55,7 +57,17 @@ contract TestableSimplePDPServiceEIP712 is SimplePDPServiceWithPayments {
         bool withCDN,
         bytes memory signature
     ) public view returns (bool) {
-        return verifyCreateProofSetSignature(payer, clientDataSetId, payee, withCDN, signature);
+        bytes32 structHash = keccak256(
+            abi.encode(
+                CREATE_PROOFSET_TYPEHASH,
+                clientDataSetId,
+                withCDN,
+                payee
+            )
+        );
+        bytes32 digest = _hashTypedDataV4(structHash);
+        address signer = ECDSA.recover(digest, signature);
+        return signer == payer;
     }
 
     function verifyAddRootsSignatureTest(
@@ -65,7 +77,9 @@ contract TestableSimplePDPServiceEIP712 is SimplePDPServiceWithPayments {
         uint256 firstAdded,
         bytes memory signature
     ) public view returns (bool) {
-        return verifyAddRootsSignature(payer, clientDataSetId, rootDataArray, firstAdded, signature);
+        bytes32 digest = getAddRootsDigest(clientDataSetId, firstAdded, rootDataArray);
+        address signer = ECDSA.recover(digest, signature);
+        return signer == payer;
     }
 
     function verifyScheduleRemovalsSignatureTest(
@@ -74,7 +88,9 @@ contract TestableSimplePDPServiceEIP712 is SimplePDPServiceWithPayments {
         uint256[] memory rootIds,
         bytes memory signature
     ) public view returns (bool) {
-        return verifyScheduleRemovalsSignature(payer, clientDataSetId, rootIds, signature);
+        bytes32 digest = getScheduleRemovalsDigest(clientDataSetId, rootIds);
+        address signer = ECDSA.recover(digest, signature);
+        return signer == payer;
     }
 
     function verifyDeleteProofSetSignatureTest(
@@ -82,7 +98,9 @@ contract TestableSimplePDPServiceEIP712 is SimplePDPServiceWithPayments {
         uint256 clientDataSetId,
         bytes memory signature
     ) public view returns (bool) {
-        return verifyDeleteProofSetSignature(payer, clientDataSetId, signature);
+        bytes32 digest = getDeleteProofSetDigest(clientDataSetId);
+        address signer = ECDSA.recover(digest, signature);
+        return signer == payer;
     }
 
     // Expose EIP-712 digest creation for testing
@@ -131,7 +149,7 @@ contract TestableSimplePDPServiceEIP712 is SimplePDPServiceWithPayments {
             ADD_ROOTS_TYPEHASH,
             clientDataSetId,
             firstAdded,
-            keccak256(abi.encode(rootDataHashes))
+            keccak256(abi.encodePacked(rootDataHashes))
         ));
         return _hashTypedDataV4(structHash);
     }
@@ -182,9 +200,8 @@ contract SignatureFixtureTest is Test {
     uint256 constant FIRST_ADDED = 1;
 
     function setUp() public {
-        // Deploy the contract (it will initialize EIP712 domain)
+        // Deploy the contract with proper EIP712 domain initialization
         testContract = new TestableSimplePDPServiceEIP712();
-        // No need to call initialize - the constructor handles it for testing
     }
 
     /**
