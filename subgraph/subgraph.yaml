@@ -46,9 +46,9 @@ dataSources:
     name: PandoraService
     network: filecoin-testnet
     source:
-      address: "0x6170dE2b09b404776197485F3dc6c968Ef948505"
+      address: "0x394feCa6bCB84502d93c0c5C03c620ba8897e8f4"
       abi: PandoraService
-      startBlock: 2474017
+      startBlock: 2722946
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
