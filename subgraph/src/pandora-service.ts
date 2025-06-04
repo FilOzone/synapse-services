@@ -328,6 +328,7 @@ export function handleProofSetRailCreated(
   const railId = event.params.railId;
   const clientAddr = event.params.payer;
   const owner = event.params.payee;
+  const withCDN = event.params.withCDN;
   const proofSetEntityId = getProofSetEntityId(setId);
   const railEntityId = getRailEntityId(railId);
   const providerEntityId = owner; // Provider ID is the owner address
@@ -345,12 +346,10 @@ export function handleProofSetRailCreated(
   );
 
   let metadata: string = "";
-  let withCDN: boolean = false;
   // Extract the values if decoding was successful
   if (decodedData) {
     const tupleValue = decodedData.toTuple();
     metadata = tupleValue[0].toString();
-    withCDN = tupleValue[2].toBoolean();
   }
 
   // Create ProofSet
