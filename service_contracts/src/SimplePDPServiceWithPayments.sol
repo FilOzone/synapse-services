@@ -73,6 +73,14 @@ contract SimplePDPServiceWithPayments is PDPListener, IArbiter, Initializable, U
         bytes signature; // Authentication signature
     }
 
+    // Structure for service pricing information
+    struct ServicePricing {
+        uint256 pricePerGiBPerMonthNoCDN;  // Price without CDN (2 USDFC per GiB per month)
+        uint256 pricePerGiBPerMonthWithCDN; // Price with CDN (3 USDFC per GiB per month)
+        address tokenAddress;               // Address of the USDFC token
+        uint256 epochsPerMonth;             // Number of epochs in a month
+    }
+
     // Mappings
     mapping(uint256 => uint256) public provingDeadlines;
     mapping(uint256 => bool) public provenThisPeriod;
@@ -600,7 +608,9 @@ contract SimplePDPServiceWithPayments is PDPListener, IArbiter, Initializable, U
         uint256 newRatePerEpoch = 0; // Default to 0 for empty proof sets
 
         uint256 totalBytes = getProofSetSizeInBytes(leafCount);
-        newRatePerEpoch = calculateStorageRatePerEpoch(totalBytes);
+        // Get the withCDN flag from the proof set info
+        bool withCDN = proofSetInfo[proofSetId].withCDN;
+        newRatePerEpoch = calculateStorageRatePerEpoch(totalBytes, withCDN);
 
         // Update the rail payment rate
         Payments payments = Payments(paymentsContractAddress);
@@ -685,29 +695,27 @@ contract SimplePDPServiceWithPayments is PDPListener, IArbiter, Initializable, U
     }
 
     /**
-     * @notice Calculate the per-epoch rate based on total storage size
-     * @dev Rate is 2 USDFC per TiB per month. Free if totalBytes < 1 MiB.
+     * @notice Calculate the per-epoch rate based on total storage size and CDN usage
+     * @dev Rate is 2 USDFC per GiB per month without CDN, 3 USDFC per GiB per month with CDN.
      * @param totalBytes Total size of the stored data in bytes
+     * @param withCDN Whether CDN is enabled for the proof set
      * @return ratePerEpoch The calculated rate per epoch in the token's smallest unit
      */
-    function calculateStorageRatePerEpoch(uint256 totalBytes) public view returns (uint256) {
-        // Free tier: No charge if storage is less than 1 MiB
-        if (totalBytes < MIB_IN_BYTES) {
-            return 0;
-        }
-
-        uint256 numerator = totalBytes * 2 * (10 ** uint256(tokenDecimals));
-        uint256 denominator = TIB_IN_BYTES * EPOCHS_PER_MONTH;
+    function calculateStorageRatePerEpoch(uint256 totalBytes, bool withCDN) public view returns (uint256) {
+        // Determine the rate based on CDN usage
+        uint256 ratePerGiBPerMonth = withCDN ? 3 : 2;
+        
+        uint256 numerator = totalBytes * ratePerGiBPerMonth * (10 ** uint256(tokenDecimals));
+        uint256 denominator = GIB_IN_BYTES * EPOCHS_PER_MONTH;
 
         // Ensure denominator is not zero (shouldn't happen with constants)
         require(denominator > 0, "Denominator cannot be zero");
 
         uint256 ratePerEpoch = numerator / denominator;
 
-        // Ensure minimum rate is 0.00001 USDFC if calculation results in 0 due to rounding,
-        // but only if bytes >= 1 MiB (already checked above).
-        // This prevents charging 0 for sizes slightly above 1 MiB but below the threshold for a rate of 1 unit.
-        if (ratePerEpoch == 0 && totalBytes >= MIB_IN_BYTES) {
+        // Ensure minimum rate is 0.00001 USDFC if calculation results in 0 due to rounding.
+        // This prevents charging 0 for very small sizes due to integer division.
+        if (ratePerEpoch == 0 && totalBytes > 0) {
             uint256 minRate = (1 * 10 ** uint256(tokenDecimals)) / 100000;
             return minRate;
         }
@@ -785,19 +793,15 @@ contract SimplePDPServiceWithPayments is PDPListener, IArbiter, Initializable, U
 
     /**
      * @notice Get the service pricing information
-     * @return pricePerTiBPerMonth The price in USDFC (2 USDFC per TiB per month)
-     * @return tokenAddress The address of the USDFC token used for payments
-     * @return epochsPerMonth The number of epochs in a month (86400)
+     * @return pricing A struct containing pricing details for both CDN and non-CDN storage
      */
-    function getServicePrice() external view returns (
-        uint256 pricePerTiBPerMonth,
-        address tokenAddress,
-        uint256 epochsPerMonth
-    ) {
-        // Return 2 USDFC per TiB per month with 18 decimals
-        pricePerTiBPerMonth = 2 * (10 ** uint256(tokenDecimals));
-        tokenAddress = usdFcTokenAddress;
-        epochsPerMonth = EPOCHS_PER_MONTH;
+    function getServicePrice() external view returns (ServicePricing memory pricing) {
+        pricing = ServicePricing({
+            pricePerGiBPerMonthNoCDN: 2 * (10 ** uint256(tokenDecimals)),
+            pricePerGiBPerMonthWithCDN: 3 * (10 ** uint256(tokenDecimals)),
+            tokenAddress: usdFcTokenAddress,
+            epochsPerMonth: EPOCHS_PER_MONTH
+        });
     }
 
     /**
