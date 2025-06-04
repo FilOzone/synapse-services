@@ -326,7 +326,7 @@ contract PandoraService is PDPListener, IArbiter, Initializable, UUPSUpgradeable
         // Decode the extra data to get the metadata, payer address, and signature
         require(extraData.length > 0, "Extra data required for proof set creation");
         ProofSetCreateData memory createData = decodeProofSetCreateData(extraData);
-
+        
         // Validate the addresses
         require(createData.payer != address(0), "Payer address cannot be zero");
         require(creator != address(0), "Creator address cannot be zero");
@@ -334,7 +334,7 @@ contract PandoraService is PDPListener, IArbiter, Initializable, UUPSUpgradeable
         // Check if the storage provider is whitelisted
         require(approvedProvidersMap[creator], "Storage provider not approved");
         
-        // Update client state 
+        // Update client state
         uint256 clientDataSetId = clientDataSetIDs[createData.payer]++;
         clientProofSets[createData.payer].push(proofSetId);
         
@@ -349,6 +349,7 @@ contract PandoraService is PDPListener, IArbiter, Initializable, UUPSUpgradeable
             ),
             "Invalid signature for proof set creation"
         );
+
         // Initialize the ProofSetInfo struct
         ProofSetInfo storage info = proofSetInfo[proofSetId];
         info.payer = createData.payer;
@@ -357,7 +358,6 @@ contract PandoraService is PDPListener, IArbiter, Initializable, UUPSUpgradeable
         info.commissionBps = createData.withCDN ? cdnServiceCommissionBps : basicServiceCommissionBps;
         info.clientDataSetId = clientDataSetId;
         info.withCDN = createData.withCDN;
-
 
         // Note: The payer must have pre-approved this contract to spend USDFC tokens before creating the proof set
 
@@ -370,7 +370,6 @@ contract PandoraService is PDPListener, IArbiter, Initializable, UUPSUpgradeable
             address(this), // this contract acts as the arbiter
             info.commissionBps // commission rate based on CDN usage
         );
-
         // Store the rail ID
         info.railId = railId;
 
@@ -384,7 +383,6 @@ contract PandoraService is PDPListener, IArbiter, Initializable, UUPSUpgradeable
             DEFAULT_LOCKUP_PERIOD,
             PROOFSET_CREATION_FEE // lockupFixed equal to the one-time payment amount
         );
-
         // Charge the one-time proof set creation fee
         // This is a payment from payer to proofset creator of a fixed amount
         payments.modifyRailPayment(
@@ -392,7 +390,6 @@ contract PandoraService is PDPListener, IArbiter, Initializable, UUPSUpgradeable
             0, // Initial rate is 0, will be updated when roots are added
             PROOFSET_CREATION_FEE // One-time payment amount
         );
-
         // Emit event for tracking
         emit ProofSetRailCreated(proofSetId, railId, createData.payer, creator, createData.withCDN);
     }
@@ -878,10 +875,8 @@ contract PandoraService is PDPListener, IArbiter, Initializable, UUPSUpgradeable
             )
         );
         bytes32 digest = _hashTypedDataV4(structHash);
-        
         // Recover signer address from the signature
         address recoveredSigner = recoverSigner(digest, signature);
-        
         // Check if the recovered signer matches the expected payer
         return recoveredSigner == payer;
     }

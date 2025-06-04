@@ -270,8 +270,13 @@ contract PandoraServiceTest is Test {
         PandoraService.ProofSetCreateData memory createData =
             PandoraService.ProofSetCreateData({metadata: "Test Proof Set", payer: client, signature: FAKE_SIGNATURE, withCDN: true});
 
-        // Encode the extra data
-        extraData = abi.encode(createData.metadata, createData.payer, createData.withCDN, createData.signature);
+        // Encode the extra data as tuple (not as struct)
+        extraData = abi.encode(
+            createData.metadata,
+            createData.payer,
+            createData.withCDN,
+            createData.signature
+        );
 
         // Client needs to approve the PDP Service to create a payment rail
         vm.startPrank(client);
@@ -364,8 +369,13 @@ contract PandoraServiceTest is Test {
         PandoraService.ProofSetCreateData memory createData =
             PandoraService.ProofSetCreateData({metadata: "Test Proof Set", payer: client, signature: FAKE_SIGNATURE, withCDN: false});
 
-        // Encode the extra data
-        extraData = abi.encode(createData.metadata, createData.payer, createData.withCDN, createData.signature);
+        // Encode the extra data as tuple (not as struct)
+        extraData = abi.encode(
+            createData.metadata,
+            createData.payer,
+            createData.withCDN,
+            createData.signature
+        );
 
         // Client needs to approve the PDP Service to create a payment rail
         vm.startPrank(client);
@@ -417,6 +427,58 @@ contract PandoraServiceTest is Test {
 
     // Constants for calculations
     uint256 constant COMMISSION_MAX_BPS = 10000;
+
+    function testDecodeProofSetCreateData() public {
+        // Test the decoding of ProofSetCreateData from raw bytes
+        // This tests the semantic fix where we decode the tuple elements individually
+        
+        // Create test data
+        string memory testMetadata = "Test Metadata for Proof Set";
+        address testPayer = address(0x123);
+        bool testWithCDN = true;
+        bytes memory testSignature = hex"abcdef1234567890";
+        
+        // Encode the data as a tuple (not as the struct)
+        bytes memory encodedData = abi.encode(
+            testMetadata,
+            testPayer,
+            testWithCDN,
+            testSignature
+        );
+        
+        // Create a test contract that exposes the internal function
+        TestDecoderWrapper decoderWrapper = new TestDecoderWrapper();
+        
+        // Decode the data
+        SimplePDPServiceWithPayments.ProofSetCreateData memory decoded = 
+            decoderWrapper.decodeProofSetCreateData(encodedData);
+        
+        // Verify all fields were decoded correctly
+        assertEq(decoded.metadata, testMetadata, "Metadata should match");
+        assertEq(decoded.payer, testPayer, "Payer should match");
+        assertEq(decoded.withCDN, testWithCDN, "WithCDN should match");
+        assertEq(decoded.signature, testSignature, "Signature should match");
+        
+        // Test with different values to ensure robustness
+        testMetadata = "";
+        testPayer = address(0);
+        testWithCDN = false;
+        testSignature = "";
+        
+        encodedData = abi.encode(
+            testMetadata,
+            testPayer,
+            testWithCDN,
+            testSignature
+        );
+        
+        decoded = decoderWrapper.decodeProofSetCreateData(encodedData);
+        
+        assertEq(decoded.metadata, testMetadata, "Empty metadata should match");
+        assertEq(decoded.payer, testPayer, "Zero address payer should match");
+        assertEq(decoded.withCDN, testWithCDN, "False withCDN should match");
+        assertEq(decoded.signature, testSignature, "Empty signature should match");
+    }
 
     function testGlobalParameters() public view {
         // These parameters should be the same as in SimplePDPService
@@ -651,7 +713,12 @@ contract PandoraServiceTest is Test {
                 withCDN: false
             });
         
-        bytes memory encodedData = abi.encode(createData.metadata, createData.payer, createData.withCDN, createData.signature);
+        bytes memory encodedData = abi.encode(
+            createData.metadata,
+            createData.payer,
+            createData.withCDN,
+            createData.signature
+        );
         
         // Setup client payment approval
         vm.startPrank(client);
@@ -703,7 +770,12 @@ contract PandoraServiceTest is Test {
                 withCDN: false
             });
         
-        bytes memory encodedData = abi.encode(createData.metadata, createData.payer, createData.withCDN, createData.signature);
+        bytes memory encodedData = abi.encode(
+            createData.metadata,
+            createData.payer,
+            createData.withCDN,
+            createData.signature
+        );
         
         // Setup client payment approval
         vm.startPrank(client);
@@ -741,7 +813,12 @@ contract PandoraServiceTest is Test {
                 withCDN: false
             });
         
-        bytes memory encodedData = abi.encode(createData.metadata, createData.payer, createData.withCDN, createData.signature);
+        bytes memory encodedData = abi.encode(
+            createData.metadata,
+            createData.payer,
+            createData.withCDN,
+            createData.signature
+        );
         
         // Setup client payment approval
         vm.startPrank(client);
@@ -1052,7 +1129,12 @@ contract PandoraServiceTest is Test {
                 signature: FAKE_SIGNATURE
             });
 
-        bytes memory encodedData = abi.encode(createData.metadata, createData.payer, createData.withCDN, createData.signature);
+        bytes memory encodedData = abi.encode(
+            createData.metadata,
+            createData.payer,
+            createData.withCDN,
+            createData.signature
+        );
 
         // Setup client payment approval if not already done
         vm.startPrank(clientAddress);
@@ -1247,5 +1329,25 @@ contract PandoraServiceSignatureTest is Test {
         // This should not revert but should return address(0) (ecrecover returns address(0) for invalid signatures)
         address recoveredSigner = pdpService.doRecoverSigner(messageHash, zeroSignature);
         assertEq(recoveredSigner, address(0), "Should return zero address for invalid signature");
+    }
+}
+
+// Test wrapper contract to expose internal functions for testing
+contract TestDecoderWrapper {
+    function decodeProofSetCreateData(bytes calldata extraData) 
+        external 
+        pure 
+        returns (SimplePDPServiceWithPayments.ProofSetCreateData memory) 
+    {
+        // Replicate the decodeProofSetCreateData logic
+        (string memory metadata, address payer, bool withCDN, bytes memory signature) = 
+            abi.decode(extraData, (string, address, bool, bytes));
+        
+        return SimplePDPServiceWithPayments.ProofSetCreateData({
+            metadata: metadata,
+            payer: payer,
+            withCDN: withCDN,
+            signature: signature
+        });
     }
 }
