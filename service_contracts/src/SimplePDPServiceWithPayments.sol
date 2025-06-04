@@ -904,7 +904,7 @@ contract SimplePDPServiceWithPayments is PDPListener, IArbiter, Initializable, U
             abi.encode(
                 SCHEDULE_REMOVALS_TYPEHASH,
                 clientDataSetId,                        
-                keccak256(abi.encode(rootIds))                           
+                keccak256(abi.encodePacked(rootIds))                           
             )
         );
         
