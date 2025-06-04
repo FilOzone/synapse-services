@@ -162,7 +162,7 @@ contract TestableSimplePDPServiceEIP712 is EIP712 {
             abi.encode(
                 SCHEDULE_REMOVALS_TYPEHASH,
                 clientDataSetId,
-                keccak256(abi.encode(rootIds))
+                keccak256(abi.encodePacked(rootIds))
             )
         );
         return _hashTypedDataV4(structHash);
