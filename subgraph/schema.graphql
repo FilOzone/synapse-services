@@ -57,7 +57,7 @@ type RateChangeQueue @entity(immutable: false) {
 
 enum ProviderStatus {
   Created
-  Pending
+  Registered
   Approved
   Rejected
   Removed
