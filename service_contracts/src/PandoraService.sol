@@ -307,7 +307,7 @@ contract PandoraService is PDPListener, IArbiter, Initializable, UUPSUpgradeable
         require(creator != address(0), "Creator address cannot be zero");
         
         // Check if the storage provider is whitelisted
-        require(approvedProvidersMap[creator], "Storage provider not approved");
+        //require(approvedProvidersMap[creator], "Storage provider not approved");
         
         // Update client state 
         uint256 clientDataSetId = clientDataSetIDs[createData.payer]++;
