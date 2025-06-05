@@ -721,7 +721,15 @@ contract PandoraService is PDPListener, IArbiter, Initializable, UUPSUpgradeable
      * @return decoded The decoded ProofSetCreateData struct
      */
     function decodeProofSetCreateData(bytes calldata extraData) internal pure returns (ProofSetCreateData memory) {
-        return abi.decode(extraData, (ProofSetCreateData));
+         (string memory metadata, address payer, bool withCDN, bytes memory signature) = 
+        abi.decode(extraData, (string, address, bool, bytes));
+
+        return ProofSetCreateData({
+            metadata: metadata,
+            payer: payer,
+            withCDN: withCDN,
+            signature: signature
+        });
     }
 
     /**
