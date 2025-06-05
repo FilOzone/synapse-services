@@ -389,7 +389,7 @@ contract PandoraService is PDPListener, IArbiter, Initializable, UUPSUpgradeable
             info.railId != 0,
             "Proof set not registered with payment system"
         );
-        bytes memory signature = abi.decode(extraData, (bytes));
+        (bytes memory signature) = abi.decode(extraData, (bytes));
         
         // Get the payer address for this proof set
         address payer = proofSetInfo[proofSetId].payer;
