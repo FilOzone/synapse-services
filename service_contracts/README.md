@@ -5,7 +5,7 @@ This directory contains the smart contracts for different Filecoin services usin
 ## Structure
 
 - `src/` - Contract source files
-  - `PandoraService.sol` - A service contract with [PDP](https://github.com/FilOzone/pdp) and payment integration
+  - `PandoraService.sol` - A service contract with [PDP](https://github.com/FilOzone/pdp) (Proof of Data Possession) and payment integration
 - `test/` - Test files  
   - `PandoraService.t.sol` - Tests for the service contract
 - `tools/` - Deployment and utility scripts
