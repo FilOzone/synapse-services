@@ -1110,6 +1110,43 @@ contract PandoraServiceTest is Test {
         assertEq(proofSets[1].metadata, "Metadata 2", "Second proof set metadata should match");
         assertEq(proofSets[1].clientDataSetId, 1, "Second dataset ID should be 1");
     }
+
+    function testGetClientProofSetsWithPayments() public {
+        // Create first and second proof set
+        uint256 proofSetId1 = createProofSetForClient(sp1, client, "metadata1");
+        uint256 proofSetId2 = createProofSetForClient(sp2, client, "metadata2");
+
+        // Get all proof sets with payment info
+        PandoraService.ProofSetPaymentView[] memory proofSets = pdpServiceWithPayments.getClientProofSetsWithPayments(client);
+
+        // Verify the results
+        assertEq(proofSets.length, 2, "Should have 2 proof sets");
+        
+        // Verify first proof set
+        assertEq(proofSets[0].proofSetId, proofSetId1, "First proof set ID should match");
+        assertEq(proofSets[0].payer, client, "First proof set payer should be client");
+        assertEq(proofSets[0].payee, sp1, "First proof set payee should be storage provider");
+        assertEq(proofSets[0].commissionBps, initialOperatorCommissionBps, "First proof set commission should match");
+        assertEq(proofSets[0].withCDN, false, "First proof set should not have CDN enabled");
+        assertEq(proofSets[0].metadata, "metadata1", "First proof set metadata should match");
+        
+        // Verify second proof set
+        assertEq(proofSets[1].proofSetId, proofSetId2, "Second proof set ID should match");
+        assertEq(proofSets[1].payer, client, "Second proof set payer should be client");
+        assertEq(proofSets[1].payee, sp2, "Second proof set payee should be storage provider");
+        assertEq(proofSets[1].commissionBps, initialOperatorCommissionBps, "Second proof set commission should match");
+        assertEq(proofSets[1].withCDN, false, "Second proof set should not have CDN enabled");
+        assertEq(proofSets[1].metadata, "metadata2", "Second proof set metadata should match");
+    }
+
+    function testGetClientProofSetsWithPayments_Empty() public view{
+        // Get proof sets for a client with no proof sets
+        PandoraService.ProofSetPaymentView[] memory proofSets = pdpServiceWithPayments.getClientProofSetsWithPayments(address(0x1234));
+        
+        // Verify empty array is returned
+        assertEq(proofSets.length, 0, "Should return empty array for client with no proof sets");
+    }
+
 }
 
 contract SignatureCheckingService is PandoraService {
