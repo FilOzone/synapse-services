@@ -10,6 +10,7 @@ import {
 } from "../generated/PDPVerifier/PDPVerifier";
 import { Provider, ProofSet, Root } from "../generated/schema";
 import { SumTree } from "./sumTree";
+import { decodeBytesString } from "./decode";
 import { LeafSize } from "../utils";
 
 // --- Helper Functions for ID Generation ---
@@ -315,21 +316,11 @@ export function handleRootsAdded(event: RootsAddedEvent): void {
 
   // Decode extraData
   const extraDataStart = readUint256(encodedData, 64);
-  const extraDataBytes = encodedData.subarray(extraDataStart.toI32());
+  const extraDataBytes = encodedData.subarray(extraDataStart.toI32() + 32);
 
   // Assuming extraData -> (metadata,signature)
-  const decodedData = ethereum.decode(
-    "(bytes,string)",
-    Bytes.fromUint8Array(extraDataBytes)
-  );
-
-  let metadata: string = "";
-
-  // Extract the values if decoding was successful
-  if (decodedData) {
-    const tupleValue = decodedData.toTuple();
-    metadata = tupleValue[1].toString();
-  }
+  const decodedData = decodeBytesString(Bytes.fromUint8Array(extraDataBytes));
+  let metadata: string = decodedData.stringValue;
 
   // Decode rootsData (tuple[])
   let rootsDataOffset = readUint256(encodedData, 32).toI32(); // Offset is at byte 32

@@ -31,6 +31,7 @@ import {
   RateChangeQueue,
 } from "../generated/schema";
 import { SumTree } from "./sumTree";
+import { decodeStringAddressBoolBytes } from "./decode";
 
 // --- Helper Functions
 function getProofSetEntityId(setId: BigInt): Bytes {
@@ -336,24 +337,17 @@ export function handleProofSetRailCreated(
   let proofSet = new ProofSet(proofSetEntityId);
 
   const inputData = event.transaction.input;
-  const extraDataStart = 4 + 32 + 32;
+  const extraDataStart = 4 + 32 + 32 + 32;
   const extraDataBytes = inputData.subarray(extraDataStart);
 
-  // Assuming extraData -> (metadata,payer,withCDN,signature)
-  const decodedData = ethereum.decode(
-    "(string,address,bool,bytes)",
+  // extraData -> (metadata,payer,withCDN,signature)
+  const decodedData = decodeStringAddressBoolBytes(
     Bytes.fromUint8Array(extraDataBytes)
   );
 
-  let metadata: string = "";
-  // Extract the values if decoding was successful
-  if (decodedData) {
-    const tupleValue = decodedData.toTuple();
-    metadata = tupleValue[0].toString();
-  }
+  let metadata: string = decodedData.stringValue;
 
   // Create ProofSet
-
   proofSet.setId = setId;
   proofSet.metadata = metadata;
   proofSet.clientAddr = clientAddr;
