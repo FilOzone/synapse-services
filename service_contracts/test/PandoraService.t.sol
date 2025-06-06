@@ -398,6 +398,11 @@ contract PandoraServiceTest is Test {
         // Verify withCDN was stored correctly
         bool withCDN = pdpServiceWithPayments.getProofSetWithCDN(newProofSetId);
         assertFalse(withCDN, "withCDN should be false");
+        
+        // Verify the commission rate was set correctly for basic service (no CDN)
+        uint256 railId = pdpServiceWithPayments.getProofSetRailId(newProofSetId);
+        Payments.RailView memory rail = payments.getRail(railId);
+        assertEq(rail.commissionRateBps, 500, "Commission rate should be 5% for basic service (no CDN)");
     }
 
     // Helper function to get account info from the Payments contract
