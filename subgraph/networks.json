@@ -2,11 +2,11 @@
   "filecoin-testnet": {
     "PDPVerifier": {
       "address": "0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC",
-      "startBlock": 2473969
+      "startBlock": 2726839
     },
     "PandoraService": {
       "address": "0x394feCa6bCB84502d93c0c5C03c620ba8897e8f4",
-      "startBlock": 2722946
+      "startBlock": 2726839
     }
   }
 }

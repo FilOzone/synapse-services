@@ -10,7 +10,7 @@ dataSources:
     source:
       address: "0x5A23b7df87f59A291C26A2A1d684AD03Ce9B68DC"
       abi: PDPVerifier
-      startBlock: 2473969
+      startBlock: 2726839
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -46,9 +46,9 @@ dataSources:
     name: PandoraService
     network: filecoin-testnet
     source:
-      address: "0x394feCa6bCB84502d93c0c5C03c620ba8897e8f4"
+      address: "0xBfDC4454c2B573079C6c5eA1DDeF6B8defC03dd5"
       abi: PandoraService
-      startBlock: 2722946
+      startBlock: 2726840
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
