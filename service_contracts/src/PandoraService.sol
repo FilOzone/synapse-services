@@ -69,6 +69,17 @@ contract PandoraService is PDPListener, IArbiter, Initializable, UUPSUpgradeable
         bool withCDN; // Whether the proof set is using CDN
     }
 
+    // View struct for returning proof set payment information
+    struct ProofSetPaymentView {
+        uint256 proofSetId;
+        uint256 railId;
+        address payer;
+        address payee;
+        uint256 commissionBps;
+        bool withCDN;
+        string metadata;
+    }
+
     // Decode structure for proof set creation extra data
     struct ProofSetCreateData {
         string metadata;
@@ -1161,6 +1172,38 @@ contract PandoraService is PDPListener, IArbiter, Initializable, UUPSUpgradeable
         return proofSets;
     }
 
+    /**
+     * @notice Get all proof sets with their payment information for a client
+     * @param client The address of the client
+     * @return Array of ProofSetPaymentView containing payment information for each proof set
+     */
+    function getClientProofSetsWithPayments(address client) external view returns (ProofSetPaymentView[] memory) {
+        // Get all proof set IDs associated with this client
+        uint256[] memory proofSetIds = clientProofSets[client];
+        
+        // Create a new array to hold the payment view data
+        ProofSetPaymentView[] memory result = new ProofSetPaymentView[](proofSetIds.length);
+
+        // Iterate through each proof set ID and create a payment view
+        for (uint256 i = 0; i < proofSetIds.length; i++) {
+            // Get the storage info for this proof set
+            ProofSetInfo storage info = proofSetInfo[proofSetIds[i]];
+            
+            // Create a payment view with the relevant information
+            result[i] = ProofSetPaymentView({
+                proofSetId: proofSetIds[i],
+                railId: info.railId,
+                payer: info.payer,
+                payee: info.payee,
+                commissionBps: info.commissionBps,
+                withCDN: info.withCDN,
+                metadata: info.metadata
+            });
+        }
+
+        return result;
+    }
+    
     /**
      * @notice Arbitrates payment based on faults in the given epoch range
      * @dev Implements the IArbiter interface function
