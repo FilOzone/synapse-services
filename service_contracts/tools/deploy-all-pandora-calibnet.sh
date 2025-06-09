@@ -91,7 +91,7 @@ NONCE=$(expr $NONCE + "1")
 # Step 6: Deploy PandoraService proxy
 echo "Deploying PandoraService proxy..."
 # Initialize with PDPVerifier address, payments contract address, USDFC token address, commission rate, max proving period, and challenge window size
-INIT_DATA=$(cast calldata "initialize(address,address,address,uint256,uint64,uint64)" $PDP_VERIFIER_ADDRESS $PAYMENTS_CONTRACT_ADDRESS $USDFC_TOKEN_ADDRESS $OPERATOR_COMMISSION_BPS $MAX_PROVING_PERIOD $CHALLENGE_WINDOW_SIZE)
+INIT_DATA=$(cast calldata "initialize(address,address,address,uint256,uint64,uint256)" $PDP_VERIFIER_ADDRESS $PAYMENTS_CONTRACT_ADDRESS $USDFC_TOKEN_ADDRESS $OPERATOR_COMMISSION_BPS $MAX_PROVING_PERIOD $CHALLENGE_WINDOW_SIZE)
 PANDORA_SERVICE_ADDRESS=$(forge create --rpc-url "$RPC_URL" --keystore "$KEYSTORE" --password "$PASSWORD" --broadcast --nonce $NONCE --chain-id 314159 lib/pdp/src/ERC1967Proxy.sol:MyERC1967Proxy --constructor-args $SERVICE_PAYMENTS_IMPLEMENTATION_ADDRESS $INIT_DATA --optimizer-runs 1 --via-ir | grep "Deployed to" | awk '{print $3}')
 if [ -z "$PANDORA_SERVICE_ADDRESS" ]; then
     echo "Error: Failed to extract PandoraService proxy address"

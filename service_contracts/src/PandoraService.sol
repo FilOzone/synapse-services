@@ -138,7 +138,7 @@ contract PandoraService is PDPListener, IArbiter, Initializable, UUPSUpgradeable
     
     // Proving period constants - set during initialization (added at end for upgrade compatibility)
     uint64 public maxProvingPeriod;
-    uint64 public challengeWindowSize;
+    uint256 public challengeWindowSize;
     
     // Events for SP registry
     event ProviderRegistered(address indexed provider, string pdpUrl, string pieceRetrievalUrl);
@@ -188,7 +188,7 @@ contract PandoraService is PDPListener, IArbiter, Initializable, UUPSUpgradeable
         address _usdfcTokenAddress,
         uint256 _initialOperatorCommissionBps,
         uint64 _maxProvingPeriod,
-        uint64 _challengeWindowSize
+        uint256 _challengeWindowSize
     ) public initializer {
         __Ownable_init(msg.sender);
         __UUPSUpgradeable_init();
@@ -223,6 +223,23 @@ contract PandoraService is PDPListener, IArbiter, Initializable, UUPSUpgradeable
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     /**
+     * @notice Initializes the new proving period parameters for contract upgrade
+     * @dev This function should be called after upgrading to set the new proving period constants
+     * @param _maxProvingPeriod Maximum number of epochs between two consecutive proofs
+     * @param _challengeWindowSize Number of epochs for the challenge window
+     */
+    function initializeV2(
+        uint64 _maxProvingPeriod,
+        uint256 _challengeWindowSize
+    ) public reinitializer(2) {
+        require(_maxProvingPeriod > 0, "Max proving period must be greater than zero");
+        require(_challengeWindowSize > 0 && _challengeWindowSize < _maxProvingPeriod, "Invalid challenge window size");
+        
+        maxProvingPeriod = _maxProvingPeriod;
+        challengeWindowSize = _challengeWindowSize;
+    }
+
+    /**
      * @notice Updates the service commission rates
      * @dev Only callable by the contract owner
      * @param newBasicCommissionBps New commission rate for basic service (no CDN) in basis points
@@ -244,7 +261,7 @@ contract PandoraService is PDPListener, IArbiter, Initializable, UUPSUpgradeable
 
     // Number of epochs at the end of a proving period during which a
     // proof of possession can be submitted
-    function challengeWindow() public view returns (uint64) {
+    function challengeWindow() public view returns (uint256) {
         return challengeWindowSize;
     }
 
