@@ -203,7 +203,9 @@ contract PandoraServiceTest is Test {
             address(mockPDPVerifier),
             address(payments),
             address(mockUSDFC),
-            initialOperatorCommissionBps
+            initialOperatorCommissionBps,
+            uint64(2880), // maxProvingPeriod
+            uint256(60)   // challengeWindowSize
         );
 
         MyERC1967Proxy pdpServiceProxy = new MyERC1967Proxy(address(pdpServiceImpl), initializeData);
@@ -248,6 +250,26 @@ contract PandoraServiceTest is Test {
             pdpServiceWithPayments.cdnServiceCommissionBps(),
             4000, // 40%
             "CDN service commission should be set correctly"
+        );
+        assertEq(
+            pdpServiceWithPayments.getMaxProvingPeriod(),
+            2880,
+            "Max proving period should be set correctly"
+        );
+        assertEq(
+            pdpServiceWithPayments.challengeWindow(),
+            60,
+            "Challenge window size should be set correctly"
+        );
+        assertEq(
+            pdpServiceWithPayments.maxProvingPeriod(),
+            2880,
+            "Max proving period storage variable should be set correctly"
+        );
+        assertEq(
+            pdpServiceWithPayments.challengeWindowSize(),
+            60,
+            "Challenge window size storage variable should be set correctly"
         );
         assertEq(pdpServiceWithPayments.tokenDecimals(), mockUSDFC.decimals(), "Token decimals should be correct");
 
