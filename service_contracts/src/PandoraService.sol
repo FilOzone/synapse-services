@@ -49,10 +49,6 @@ contract PandoraService is PDPListener, IArbiter, Initializable, UUPSUpgradeable
     address public paymentsContractAddress;
     address public usdfcTokenAddress;
 
-    // Proving period constants - set during initialization
-    uint64 public maxProvingPeriod;
-    uint256 public challengeWindowSize;
-
     // Commission rate in basis points (100 = 1%)
     uint256 public operatorCommissionBps;
     
@@ -140,6 +136,10 @@ contract PandoraService is PDPListener, IArbiter, Initializable, UUPSUpgradeable
     
     mapping(address => uint256) public providerToId;
     
+    // Proving period constants - set during initialization (added at end for upgrade compatibility)
+    uint64 public maxProvingPeriod;
+    uint64 public challengeWindowSize;
+    
     // Events for SP registry
     event ProviderRegistered(address indexed provider, string pdpUrl, string pieceRetrievalUrl);
     event ProviderApproved(address indexed provider, uint256 indexed providerId);
@@ -188,7 +188,7 @@ contract PandoraService is PDPListener, IArbiter, Initializable, UUPSUpgradeable
         address _usdfcTokenAddress,
         uint256 _initialOperatorCommissionBps,
         uint64 _maxProvingPeriod,
-        uint256 _challengeWindowSize
+        uint64 _challengeWindowSize
     ) public initializer {
         __Ownable_init(msg.sender);
         __UUPSUpgradeable_init();
@@ -244,7 +244,7 @@ contract PandoraService is PDPListener, IArbiter, Initializable, UUPSUpgradeable
 
     // Number of epochs at the end of a proving period during which a
     // proof of possession can be submitted
-    function challengeWindow() public view returns (uint256) {
+    function challengeWindow() public view returns (uint64) {
         return challengeWindowSize;
     }
 

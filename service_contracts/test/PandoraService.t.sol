@@ -205,7 +205,7 @@ contract PandoraServiceTest is Test {
             address(mockUSDFC),
             initialOperatorCommissionBps,
             uint64(2880), // maxProvingPeriod
-            uint256(60)   // challengeWindowSize
+            uint64(60)    // challengeWindowSize
         );
 
         MyERC1967Proxy pdpServiceProxy = new MyERC1967Proxy(address(pdpServiceImpl), initializeData);
@@ -1207,7 +1207,7 @@ contract PandoraServiceSignatureTest is Test {
             address(mockUSDFC),
             500, // 5% commission
             uint64(2880), // maxProvingPeriod
-            uint256(60)   // challengeWindowSize
+            uint64(60)    // challengeWindowSize
         );
         
         MyERC1967Proxy serviceProxy = new MyERC1967Proxy(address(serviceImpl), initData);
