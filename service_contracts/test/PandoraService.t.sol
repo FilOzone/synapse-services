@@ -1344,8 +1344,8 @@ contract PandoraServiceUpgradeTest is Test {
         // Test that initializeV2 can only be called once
         pandoraService.initializeV2(120, 30);
         
-        // Second call should fail
-        vm.expectRevert("Initializable: contract is already initialized");
+        // Second call should fail - expecting the InvalidInitialization() custom error
+        vm.expectRevert(abi.encodeWithSignature("InvalidInitialization()"));
         pandoraService.initializeV2(240, 60);
     }
 }
